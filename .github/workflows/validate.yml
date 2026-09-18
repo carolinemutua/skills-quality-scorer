@@ -1,0 +1,31 @@
+name: Validate quality scorer
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - name: Check skill files and Python syntax
+        run: |
+          test -f quality-scorer/SKILL.md
+          python -m compileall -q quality-scorer
+      - name: Check file and folder inputs
+        working-directory: quality-scorer
+        run: |
+          python -c 'from pathlib import Path; from score_skill import read_skill; path = Path("SKILL.md").resolve(); assert read_skill(path)[2] == ["SKILL.md"]; assert "SKILL.md" in read_skill(path.parent)[2]'
+      - name: Check terminal sample output
+        working-directory: quality-scorer
+        run: |
+          python score_skill.py --demo | tee /tmp/quality-scorer-demo.txt
+          grep -q "DEMO: sample scores only" /tmp/quality-scorer-demo.txt
+          grep -q "Top improvements" /tmp/quality-scorer-demo.txt
